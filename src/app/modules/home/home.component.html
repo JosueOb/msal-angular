@@ -1,1 +1,28 @@
-<p>home works!</p>
+<mat-toolbar>
+  <span>MSAL Angular</span>
+
+  <span class="example-spacer"></span>
+
+  <button mat-button [matMenuTriggerFor]="menu">
+    <mat-icon>more_vert</mat-icon>
+  </button>
+  <mat-menu #menu="matMenu">
+    <button mat-menu-item (click)="logout()"><span>Logout</span></button>
+  </mat-menu>
+</mat-toolbar>
+
+<div class="container">
+  <h3>You signed in successfully</h3>
+  <hr />
+
+  <dl>
+    <dt>User Name</dt>
+    <dd>....</dd>
+
+    <dt>Email</dt>
+    <dd>....</dd>
+
+    <dt>User Id</dt>
+    <dd>....</dd>
+  </dl>
+</div>
