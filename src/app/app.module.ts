@@ -62,7 +62,10 @@ import { AUTHORITY, CLIENT_ID, SCOPES } from 'src/environments/environment';
       {
         // MSAL Interceptor Configuration
         interactionType: InteractionType.Redirect,
-        protectedResourceMap: new Map([]),
+        protectedResourceMap: new Map([
+          ['https://graph.microsoft.com/v1.0/me', ['user.read']],
+          ['http://localhost:4200/', null]
+        ]),
       }
     ),
   ],
