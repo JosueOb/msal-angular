@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AzureAdB2CService } from './services/azure.ad.b2c.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -7,17 +8,26 @@ import { AzureAdB2CService } from './services/azure.ad.b2c.service';
   styleUrls: ['./login.component.sass'],
 })
 export class LoginComponent implements OnInit {
-  constructor(private azureAdB2CService: AzureAdB2CService) {}
+  constructor(
+    private azureAdB2CService: AzureAdB2CService,
+    private route: Router
+  ) {}
 
   ngOnInit(): void {}
 
   login() {
     console.log('Sign in');
-    this.azureAdB2CService.signIn().subscribe({
-      next: (result) => {
-        console.log(result);
-      },
-      error: (error) => console.log(error),
-    });
+    if (this.azureAdB2CService.isLogin()) {
+      this.route.navigate(['']);
+    } else {
+      this.azureAdB2CService.signIn().subscribe({
+        next: (result) => {
+          //console.log(result);
+          //console.log(this.azureAdB2CService.getAccount());
+          this.route.navigate(['']);
+        },
+        error: (error) => console.log(error),
+      });
+    }
   }
 }
