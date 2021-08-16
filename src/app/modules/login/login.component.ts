@@ -22,11 +22,13 @@ export class LoginComponent implements OnInit {
     } else {
       this.azureAdB2CService.signIn().subscribe({
         next: (result) => {
-          //console.log(result);
-          //console.log(this.azureAdB2CService.getAccount());
+          console.log(result);
+          this.azureAdB2CService.handleResponse(result);
+          this.azureAdB2CService.getAccessToken();
+
           this.route.navigate(['']);
         },
-        error: (error) => console.log(error),
+        error: (error) => console.error(error),
       });
     }
   }
