@@ -16,11 +16,13 @@ import { AUTHORITY, CLIENT_ID, SCOPES } from 'src/environments/environment';
 })
 export class AzureAdB2CService {
   private msalConfig: Configuration = {
+    //Auth config options
     auth: {
-      clientId: CLIENT_ID,
-      authority: AUTHORITY,
-      redirectUri: 'http://localhost:4200',
+      clientId: CLIENT_ID, //App ID of your application
+      authority: AUTHORITY, //URI of the tenant to authenticate and authorize with. Usually takes the form of https://{uri}/{tenantid}
+      redirectUri: 'http://localhost:4200', //URI where the authorization code response is sent back to.
     },
+    //Cache config options
     cache: {
       cacheLocation: 'localStorage', // This configures where your cache will be stored
       storeAuthStateInCookie: false, // Set this to "true" if you are having issues on IE11 or Edge
@@ -39,9 +41,10 @@ export class AzureAdB2CService {
     this.loginRequest = {
       scopes: SCOPES, // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
     };
+
     this.silentTokenRequest = {
       scopes: ['User.Read'], // Add scopes here for access token to be used at Microsoft Graph API endpoints.
-      forceRefresh: false,
+      forceRefresh: false, // Set this to "true" to skip a cached token and go to the server to get a new token
     };
 
     if (this.isLogin()) {
@@ -54,7 +57,6 @@ export class AzureAdB2CService {
   /**
    * Calls getAllAccounts and determines the correct account to sign into, currently defaults to first account found in cache.
    * TODO: Add account chooser code
-   *
    */
   getAccount(): AccountInfo | null {
     const currentAccounts = this.msalInstance.getAllAccounts();
@@ -72,7 +74,6 @@ export class AzureAdB2CService {
     } else if (currentAccounts.length === 1) {
       return currentAccounts[0];
     }
-
     return null;
   }
 
@@ -110,18 +111,27 @@ export class AzureAdB2CService {
     });
   }
 
+  /**
+   * Calls acquireTokenSilent.
+   */
   private acquireTokenSilent(
     silentRequest: SilentRequest
   ): Observable<AuthenticationResult> {
     return from(this.msalInstance.acquireTokenSilent(silentRequest));
   }
 
+  /**
+   * Calls acquireTokenPopup.
+   */
   private acquireTokenPopup(
     loginRequest: PopupRequest
   ): Observable<AuthenticationResult> {
     return from(this.acquireTokenPopup(loginRequest));
   }
 
+  /**
+   * Gets a token silently, or falls back to interactive popup.
+   */
   private acquireAccessToken(
     silentRequest: SilentRequest,
     loginRequest: PopupRequest
@@ -138,6 +148,9 @@ export class AzureAdB2CService {
     );
   }
 
+  /**
+   * Gets the token to read user profile data from MS Graph silently, or falls back to interactive popup.
+   */
   verifyOrUpdateAccessToken(): void {
     if (this.account) {
       this.silentTokenRequest.account = this.account;
@@ -155,7 +168,7 @@ export class AzureAdB2CService {
       },
       (err) => {
         console.error('Access token error', err);
-      },
+      }
       //() => console.log('Acces token completed.')
     );
   }
