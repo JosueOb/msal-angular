@@ -1,14 +1,14 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnInit } from '@angular/core';
 import {
   AccountInfo,
   AuthenticationResult,
   Configuration,
-  InteractionRequiredAuthError,
   PopupRequest,
   PublicClientApplication,
   SilentRequest,
 } from '@azure/msal-browser';
-import { from, Observable } from 'rxjs';
+import { from, Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AUTHORITY, CLIENT_ID, SCOPES } from 'src/environments/environment';
 
 @Injectable({
@@ -19,7 +19,7 @@ export class AzureAdB2CService {
     auth: {
       clientId: CLIENT_ID,
       authority: AUTHORITY,
-      redirectUri: 'http://localhost:4200/',
+      redirectUri: 'http://localhost:4200',
     },
     cache: {
       cacheLocation: 'localStorage', // This configures where your cache will be stored
@@ -30,18 +30,25 @@ export class AzureAdB2CService {
   private msalInstance: PublicClientApplication;
   private account: AccountInfo | null;
   private loginRequest: PopupRequest;
-  private silentRequest: SilentRequest;
+  private silentTokenRequest: SilentRequest;
 
   constructor() {
     this.msalInstance = new PublicClientApplication(this.msalConfig);
     this.account = null;
+
     this.loginRequest = {
       scopes: SCOPES, // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
     };
-    this.silentRequest = {
+    this.silentTokenRequest = {
       scopes: ['User.Read'], // Add scopes here for access token to be used at Microsoft Graph API endpoints.
       forceRefresh: false,
     };
+
+    if (this.isLogin()) {
+      this.account = this.getAccount();
+    } else {
+      this.account = null;
+    }
   }
 
   /**
@@ -71,21 +78,29 @@ export class AzureAdB2CService {
 
   /**
    * Handles the response from a popup or redirect. If response is null, will check if we have any accounts and attempt to sign in.
-   * @param response
    */
   handleResponse(response: AuthenticationResult | null) {
     if (response !== null) {
       this.account = response.account;
+      localStorage.setItem('accessToken', response.accessToken);
     } else {
       this.account = this.getAccount();
     }
   }
 
+  /**
+   * Calls loginPopup.
+   */
   signIn(): Observable<AuthenticationResult> {
     return from(this.msalInstance.loginPopup(this.loginRequest));
   }
 
+  /**
+   * Logs out of current account.
+   */
   logout(): void {
+    localStorage.removeItem('accessToken');
+
     this.msalInstance.logoutRedirect({
       onRedirectNavigate: (url) => {
         // Return false if you would like to stop navigation after local logout
@@ -95,51 +110,61 @@ export class AzureAdB2CService {
     });
   }
 
-  /**
-   * Gets a token silently, or falls back to interactive popup.
-   */
-  private async getTokenPopup(
+  private acquireTokenSilent(
+    silentRequest: SilentRequest
+  ): Observable<AuthenticationResult> {
+    return from(this.msalInstance.acquireTokenSilent(silentRequest));
+  }
+
+  private acquireTokenPopup(
+    loginRequest: PopupRequest
+  ): Observable<AuthenticationResult> {
+    return from(this.acquireTokenPopup(loginRequest));
+  }
+
+  private acquireAccessToken(
     silentRequest: SilentRequest,
     loginRequest: PopupRequest
-  ): Promise<string | null> {
-    try {
-      const response: AuthenticationResult =
-        await this.msalInstance.acquireTokenSilent(silentRequest);
-      return response.accessToken;
-    } catch (error) {
-      if (error instanceof InteractionRequiredAuthError) {
-        return this.msalInstance
-          .acquireTokenPopup(loginRequest)
-          .then((resp) => {
-            return resp.accessToken;
-          })
-          .catch((err) => {
-            console.error('Error acquiring token using redirect.', err);
-            return null;
-          });
-      } else {
-        console.error('Silent token acquisition fails.', error);
-      }
-    }
-    return null;
-  }
-
-  async getAccessToken() {
-    if (this.account) {
-      this.silentRequest.account = this.account;
-    }
-
-    const token = await this.getTokenPopup(
-      this.silentRequest,
-      this.loginRequest
+  ): Observable<AuthenticationResult> {
+    return this.acquireTokenSilent(silentRequest).pipe(
+      //map((resp) => resp.accessToken),
+      catchError((error) => {
+        console.log('Silent token acquisition fails.', error);
+        return this.acquireTokenPopup(loginRequest);
+      }),
+      catchError((error) => {
+        return throwError(error);
+      })
     );
-
-    if (token && token.length > 0) {
-      console.log(token);
-    }
   }
 
-  isLogin() {
+  verifyOrUpdateAccessToken(): void {
+    if (this.account) {
+      this.silentTokenRequest.account = this.account;
+    }
+
+    this.acquireAccessToken(
+      this.silentTokenRequest,
+      this.loginRequest
+    ).subscribe(
+      (resp) => {
+        //console.log('Access token', resp.accessToken);
+        if (localStorage.getItem('accessToken') !== resp.accessToken) {
+          localStorage.setItem('accessToken', resp.accessToken);
+        }
+      },
+      (err) => {
+        console.error('Access token error', err);
+      },
+      //() => console.log('Acces token completed.')
+    );
+  }
+
+  isLogin(): boolean {
     return this.getAccount() ? true : false;
+  }
+
+  getAccessToken(): string | null {
+    return localStorage.getItem('accessToken');
   }
 }
