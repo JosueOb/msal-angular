@@ -11,6 +11,8 @@ import { AppComponent } from './app.component';
 import { HomeComponent } from './modules/home/home.component';
 import { LoginComponent } from './modules/login/login.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { InjectTokenInterceptor } from './modules/shared/interceptors/inject.token.interceptor';
 
 @NgModule({
   declarations: [AppComponent, HomeComponent, LoginComponent],
@@ -22,8 +24,15 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
     MatToolbarModule,
     MatButtonModule,
     MatMenuModule,
+    HttpClientModule,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: InjectTokenInterceptor,
+      multi: true,
+    },
+  ],
   bootstrap: [AppComponent],
 })
 export class AppModule {}
