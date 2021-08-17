@@ -11,6 +11,7 @@ export const environment = {
 export const CLIENT_ID = keys.CLIENT_ID;
 export const AUTHORITY = keys.AUTHORITY;
 export const SCOPES = keys.SCOPES;
+export const GRAPH_ENDPOINT = keys.GRAPH_ENDPOINT;
 
 /*
  * For easier debugging in development mode, you can import the following file
