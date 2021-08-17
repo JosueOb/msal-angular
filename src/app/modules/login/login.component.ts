@@ -16,19 +16,18 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {}
 
   login() {
-    console.log('Sign in');
+    //console.log('Sign in');
     if (this.azureAdB2CService.isLogin()) {
       this.route.navigate(['']);
     } else {
       this.azureAdB2CService.signIn().subscribe({
         next: (result) => {
-          console.log(result);
+          //console.log(result);
           this.azureAdB2CService.handleResponse(result);
-          this.azureAdB2CService.getAccessToken();
-
           this.route.navigate(['']);
         },
-        error: (error) => console.error(error),
+        error: (error) => console.error('Login error', error),
+        //complete: () => console.log('Login completed.'),
       });
     }
   }
